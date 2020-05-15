@@ -8,17 +8,17 @@ pipeline {
                 echo 'Building...'
                 // deleteDir() untuk delete cache
                 sh 'yarn install' 
-                deleteDir()
-            }
-        }
-
-        stage('Test') {
-            when { branch 'master' }
-            agent { docker { image 'node:12.14' } }
-            steps {
                 sh 'yarn test'
             }
         }
+
+        // stage('Test') {
+        //     when { branch 'master' }
+        //     agent { docker { image 'node:12.14' } }
+        //     steps {
+        //         sh 'yarn test'
+        //     }
+        // }
 
         stage('Build_Image') {
             when { branch 'master' }
