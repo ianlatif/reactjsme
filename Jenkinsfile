@@ -6,7 +6,6 @@ pipeline {
             agent { docker { image 'node:12.14' } }  
             steps {
                 echo 'Building...'
-                deleteDir()
                 sh 'yarn install' 
             }
         }
