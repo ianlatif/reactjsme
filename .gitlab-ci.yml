@@ -1,0 +1,141 @@
+stages:
+  - install_dependencies
+  - build-dev
+  - build-stg
+  - build
+  - test
+  - push-dev
+  - push-stg
+  - push
+
+variables:
+  GIT_SSL_NO_VERIFY: "1"
+
+before_script:
+  - mkdir .cache
+
+install_dependencies:
+  image: node:12.14
+  stage: install_dependencies
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI-PROJECT_DIR
+    paths:
+      - node_modules/
+  script:
+    - yarn install
+    - ls
+  only:
+    changes:
+      - yarn.lock
+
+build_dev_source:
+  image: node:12.14
+  stage: build-dev
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI-PROJECT_DIR
+    paths:
+      - node_modules/
+  only:
+    - develop
+  script:
+    - unset CI
+    - yarn build-dev
+
+build_stg_source:
+  image: node:12.14
+  stage: build-stg
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI-PROJECT_DIR
+    paths:
+      - node_modules/
+    policy: pull
+  only:
+    - staging
+  script:
+    - unset CI
+    - yarn build-stg
+
+build_source:
+  image: node:12.14
+  stage: build
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI-PROJECT_DIR
+    paths:
+      - node_modules/
+    policy: pull
+  only:
+    - master
+  script:
+    - unset CI
+    - yarn build
+
+unit_test:
+  image: node:12.14
+  stage: test
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI-PROJECT_DIR
+    paths:
+      - node_modules/
+    policy: pull
+  script:
+    - yarn test
+
+build_image_dev:
+  image: docker:stable
+  stage: push-dev
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI-PROJECT_DIR
+    paths:
+      - node_modules/
+    policy: pull
+  only:
+    - develop
+  before_script:
+    - docker info
+    - apk add python3
+  script:
+    - docker build -t docker.adroady.com/ai-admin-dashboard-dev -f Dockerfile .
+    - docker push docker.adroady.com/ai-admin-dashboard-dev
+    - docker rmi docker.adroady.com/ai-admin-dashboard-dev
+    - kubectl config use-context  adroady@frontend.ap-southeast-1.eksctl.io
+    - kubectl -n development patch deployment ai-admin-dashboard-dev -p "{\"spec\":{\"template\":{\"metadata\":{ \"labels\":{  \"redeploy\":\"$(date +%s)\"}}}}}"
+
+build_image_stg:
+  image: docker:stable
+  stage: push-stg
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI-PROJECT_DIR
+    paths:
+      - node_modules/
+    policy: pull
+  only:
+    - staging
+  before_script:
+    - docker info
+    - apk add python3
+  script:
+    - docker build -t docker.adroady.com/ai-admin-dashboard-stg -f Dockerfile.prod .
+    - docker push docker.adroady.com/ai-admin-dashboard-stg
+    - docker rmi docker.adroady.com/ai-admin-dashboard-stg
+    - kubectl config kubectl config use-context  adroady@frontend.ap-southeast-1.eksctl.io
+    - kubectl -n staging patch deployment ai-admin-dashboard-stg -p "{\"spec\":{\"template\":{\"metadata\":{ \"labels\":{  \"redeploy\":\"$(date +%s)\"}}}}}"
+
+build_image:
+  image: docker:stable
+  stage: push
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI-PROJECT_DIR
+    paths:
+      - node_modules/
+    policy: pull
+  only:
+    - master
+  before_script:
+    - docker info
+    - apk add python3
+  script:
+    - docker build -t docker.adroady.com/ai-admin-dashboard -f Dockerfile.prod .
+    - docker push docker.adroady.com/ai-admin-dashboard
+    - docker rmi docker.adroady.com/ai-admin-dashboard
+    - kubectl config use-context  adroady@frontend.ap-southeast-1.eksctl.io
+    - kubectl -n production patch deployment ai-admin-dashboard -p "{\"spec\":{\"template\":{\"metadata\":{ \"labels\":{  \"redeploy\":\"$(date +%s)\"}}}}}"
