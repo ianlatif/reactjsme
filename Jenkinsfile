@@ -10,6 +10,11 @@ pipeline {
                 sh 'yarn install' 
                 sh 'yarn test'
             }
+             post {
+                always {
+                    step([$class: 'CoberturaPublisher', coberturaReportFile: 'output/coverage/jest/cobertura-coverage.xml'])
+                }
+            }
         }
 
         // stage('Test') {
