@@ -86,6 +86,17 @@
       "last 1 safari version"
     ]
   },
+  "name": "continuous-test-code-coverage-guide",
+  "scripts": {
+    "start": "webpack",
+    "test": "jest --coverage --coverageDirectory=output/coverage/jest"
+  },
+  "jest": {
+    "coverageReporters": [
+      "text",
+      "cobertura"
+    ]
+  },
   "devDependencies": {
     "env-cmd": "^10.1.0"
   }
